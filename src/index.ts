@@ -54,13 +54,13 @@ const buildBoard = (init: InitialBoard): Board => {
 
   const size = init.length;
   for (let i = 0; i < size; i++) {
-    {
+    const q = (f: (i: number, j: number) => boolean) => {
       const line: Line = [];
       let next = 0;
       let width = 0;
       let isBlack = false;
       for (let j = 0; j < size; j++) {
-        const c = init[i][j];
+        const c = f(i, j);
         if (c && !isBlack) {
           isBlack = true;
           width = 1;
@@ -75,37 +75,17 @@ const buildBoard = (init: InitialBoard): Board => {
         }
       }
       if (isBlack) line.push({ width, offset: next });
-      board.rows.push(line);
-    }
-    {
-      const line: Line = [];
-      let next = 0;
-      let width = 0;
-      let isBlack = false;
-      for (let j = 0; j < size; j++) {
-        const c = init[j][i];
-        if (c && !isBlack) {
-          isBlack = true;
-          width = 1;
-        } else if (c && isBlack) {
-          width++;
-        } else if (!c && !isBlack) {
-          continue;
-        } else if (!c && isBlack) {
-          isBlack = false;
-          line.push({ width, offset: next });
-          next += width + 1;
-        }
-      }
-      if (isBlack) line.push({ width, offset: next });
-      board.cols.push(line);
-    }
+      return line;
+    };
+
+    board.rows.push(q((i, j) => init[i][j]));
+    board.cols.push(q((i, j) => init[j][i]));
   }
   return board;
 };
 
 const drawBoard = (board: Board) => {
-  let CELL_SIZE = canvas.width / b.rows.length;
+  let CELL_SIZE = getCellSize(canvas, b);
 
   ctx.strokeStyle = "rgba(0,0,0,0.2)";
   ctx.fillStyle = "black";
@@ -113,8 +93,7 @@ const drawBoard = (board: Board) => {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
   ctx.fillStyle = "rgba(0,0,0,0.2)";
 
-  let y = 0;
-  for (const line of board.rows) {
+  for (const [y, line] of enumerate(board.rows)) {
     for (const block of line) {
       ctx.fillStyle = block.selected
         ? "rgba(200,90,90,0.7)"
@@ -127,11 +106,9 @@ const drawBoard = (board: Board) => {
         CELL_SIZE / 1
       );
     }
-    y++;
   }
 
-  let x = 0;
-  for (const line of board.cols) {
+  for (const [x, line] of enumerate(board.cols)) {
     for (const block of line) {
       ctx.fillStyle = block.selected
         ? "rgba(200,90,90,0.7)"
@@ -144,12 +121,10 @@ const drawBoard = (board: Board) => {
         (block.width * CELL_SIZE) / 1
       );
     }
-    x++;
   }
 
   ctx.fillStyle = "#4c566a";
-  y = 0;
-  for (const line of board.rows) {
+  for (const [y, line] of enumerate(board.rows)) {
     for (const block of line) {
       for (let i = 0; i < 4; i++) {
         ctx.fillRect(
@@ -160,11 +135,9 @@ const drawBoard = (board: Board) => {
         );
       }
     }
-    y++;
   }
 
-  x = 0;
-  for (const line of board.cols) {
+  for (const [x, line] of enumerate(board.cols)) {
     for (const block of line) {
       for (let i = 0; i < 4; i++) {
         ctx.fillRect(
@@ -175,9 +148,10 @@ const drawBoard = (board: Board) => {
         );
       }
     }
-    x++;
   }
 };
+
+const enumerate = <T>(a: T[]): [number, T][] => a.map((x, i) => [i, x]);
 
 const flip = (a: "x" | "y"): "x" | "y" => (a == "x" ? "y" : "x");
 
@@ -190,16 +164,17 @@ const getBlockId = (board: Board, dir: "x" | "y", pos: V2): BlockId | null => {
   const asdf = board[q];
   const line = asdf[a];
 
-  let i = 0;
-  for (const block of line) {
+  for (const [i, block] of enumerate(line)) {
     if (block.offset <= b && block.offset + block.width > b) return [q, a, i];
-    i++;
   }
 
   return null;
 };
 const getBlock = (board: Board, id: BlockId): Block | null =>
   board[id[0]][id[1]][id[2]] || null;
+
+const getCellSize = (canvas: HTMLCanvasElement, board: Board): number =>
+  canvas.width / board.rows.length;
 
 const boardSrc = `
 001000010000100
@@ -251,75 +226,68 @@ type Input =
       current: V2;
     };
 
-let mouse: Input = { state: "released" };
+// let mouse: Input = { state: "released" };
 
-canvas.onmousedown = e => {
-  const CELL_SIZE = canvas.width / b.rows.length;
-
-  mouse = {
-    state: "just-down",
-    start: {
-      x: e.offsetX / CELL_SIZE,
-      y: e.offsetY / CELL_SIZE
-    }
-  };
+const inputs: Record<string | number, Input> = {};
+const handleDown = (name: string | number, x: number, y: number) => {
+  console.log({ name, x, y });
+  inputs[name] = { state: "just-down", start: { x, y } };
 };
-window.addEventListener("mouseup", e => {
-  if (mouse.state == "dragging" && mouse.block) {
-    const block = getBlock(b, mouse.block)!;
+const handleUp = (name: string | number) => {
+  const input = inputs[name];
+  if (!input) return;
+
+  if (input.state == "dragging" && input.block) {
+    const block = getBlock(b, input.block)!;
     block.selected = false;
     block.offset = Math.max(Math.round(block.offset), 0);
   }
-  mouse = { state: "released" };
+  inputs[name] = { state: "released" };
 
   drawBoard(b);
-});
-canvas.onmousemove = e => {
-  if (mouse.state != "dragging" && mouse.state != "just-down") return;
+};
 
-  const CELL_SIZE = canvas.width / b.rows.length;
+const handleMove = (name: string | number, x: number, y: number) => {
+  let input = inputs[name];
+  if (!input) return;
 
-  const pos = {
-    x: e.offsetX / CELL_SIZE,
-    y: e.offsetY / CELL_SIZE
-  };
+  if (input.state != "dragging" && input.state != "just-down") return;
+  const CELL_SIZE = getCellSize(canvas, b);
+  const pos = { x, y };
 
   const delta = {
-    x: pos.x - mouse.start.x,
-    y: pos.y - mouse.start.y
+    x: pos.x - input.start.x,
+    y: pos.y - input.start.y
   };
 
-  if (mouse.state == "just-down") {
+  if (input.state == "just-down") {
     if (Math.abs(delta.x) < 0.1 && Math.abs(delta.y) < 0.1) return;
 
     const moveDir = Math.abs(delta.x) > Math.abs(delta.y) ? "x" : "y";
-    const block = getBlockId(b, moveDir, mouse.start);
+    const block = getBlockId(b, moveDir, input.start);
 
-    mouse = {
+    input = {
       state: "dragging",
       block,
       current: pos,
       dir: moveDir,
-      start: mouse.start,
-      startOffset:
-        block && getBlock(b, block) ? getBlock(b, block)!.offset : null
+      start: input.start,
+      startOffset: block ? getBlock(b, block)!.offset : null
     };
   }
 
-  if (mouse.state == "dragging" && mouse.block) {
+  if (input.state == "dragging" && input.block) {
     const left = getBlock(b, [
-      mouse.block[0],
-      mouse.block[1],
-      mouse.block[2] - 1
+      input.block[0],
+      input.block[1],
+      input.block[2] - 1
     ]);
     const right = getBlock(b, [
-      mouse.block[0],
-      mouse.block[1],
-      mouse.block[2] + 1
+      input.block[0],
+      input.block[1],
+      input.block[2] + 1
     ]);
-    const block = getBlock(b, mouse.block);
-
-    if (!block) return;
+    const block = getBlock(b, input.block)!;
 
     const min = left ? left.offset + left.width + 1 : 0;
     const max = right
@@ -329,9 +297,55 @@ canvas.onmousemove = e => {
     block.selected = true;
     block.offset = Math.max(
       min,
-      Math.min(max, mouse.startOffset! + delta[mouse.dir])
+      Math.min(max, input.startOffset! + delta[input.dir])
     );
   }
 
+  inputs[name] = input;
+
   drawBoard(b);
 };
+
+canvas.addEventListener("touchstart", e => {
+  const CELL_SIZE = getCellSize(canvas, b);
+
+  const rect = canvas.getBoundingClientRect();
+  const { clientX, clientY } = e.touches[e.which]!;
+  handleDown(
+    e.which,
+    (clientX - rect.left) / CELL_SIZE,
+    (clientY - rect.top) / CELL_SIZE
+  );
+});
+canvas.addEventListener("mousedown", e => {
+  const CELL_SIZE = getCellSize(canvas, b);
+
+  handleDown("mouse", e.offsetX / CELL_SIZE, e.offsetY / CELL_SIZE);
+});
+window.addEventListener("touchend", e => {
+  handleUp(e.which);
+});
+window.addEventListener("mouseup", e => {
+  handleUp("mouse");
+});
+window.addEventListener("touchmove", e => {
+  const CELL_SIZE = getCellSize(canvas, b);
+
+  const rect = canvas.getBoundingClientRect();
+  const { clientX, clientY } = e.touches[e.which]!;
+  handleMove(
+    e.which,
+    (clientX - rect.left) / CELL_SIZE,
+    (clientY - rect.top) / CELL_SIZE
+  );
+
+  e.preventDefault();
+});
+window.addEventListener("mousemove", e => {
+  const CELL_SIZE = getCellSize(canvas, b);
+  handleMove(
+    "mouse",
+    (e.clientX - canvas.offsetLeft) / CELL_SIZE,
+    (e.clientY - canvas.offsetTop) / CELL_SIZE
+  );
+});

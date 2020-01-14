@@ -20,3 +20,8 @@ body {
   background: #3b4252;
   box-shadow: 0 0.2em 1em rgba(0, 0, 0, 0.7);
 }
+
+canvas {
+  touch-action: none;
+  user-select: none;
+}
