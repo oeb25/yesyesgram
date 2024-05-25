@@ -1,16 +1,15 @@
 {
   "name": "yesyesgram",
-  "version": "1.0.0",
-  "description": "",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
   "scripts": {
-    "start": "parcel src/index.html",
-    "build": "parcel build src/index.html"
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "preview": "vite preview"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
   "devDependencies": {
-    "parcel-bundler": "^1.12.4",
-    "typescript": "^3.7.4"
+    "typescript": "^5.2.2",
+    "vite": "^5.2.0"
   }
 }

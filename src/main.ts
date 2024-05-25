@@ -1,3 +1,5 @@
+import "./styles.css";
+
 const canvas = document.createElement("canvas");
 const ctx = canvas.getContext("2d")!;
 canvas.width = canvas.height =
@@ -49,7 +51,7 @@ type Board = {
 const buildBoard = (init: InitialBoard): Board => {
   const board: Board = {
     rows: [],
-    cols: []
+    cols: [],
   };
 
   const size = init.length;
@@ -204,7 +206,7 @@ const boardSrc = `
 //   `.trim();
 
 const parseBoard = (src: string): InitialBoard =>
-  src.split("\n").map(x => x.split("").map(x => Math.random() < 0.6));
+  src.split("\n").map((x) => x.split("").map((x) => Math.random() < 0.6));
 
 const board1 = parseBoard(boardSrc);
 const b = buildBoard(board1);
@@ -257,7 +259,7 @@ const handleMove = (name: string | number, x: number, y: number) => {
 
   const delta = {
     x: pos.x - input.start.x,
-    y: pos.y - input.start.y
+    y: pos.y - input.start.y,
   };
 
   if (input.state == "just-down") {
@@ -272,7 +274,7 @@ const handleMove = (name: string | number, x: number, y: number) => {
       current: pos,
       dir: moveDir,
       start: input.start,
-      startOffset: block ? getBlock(b, block)!.offset : null
+      startOffset: block ? getBlock(b, block)!.offset : null,
     };
   }
 
@@ -280,12 +282,12 @@ const handleMove = (name: string | number, x: number, y: number) => {
     const left = getBlock(b, [
       input.block[0],
       input.block[1],
-      input.block[2] - 1
+      input.block[2] - 1,
     ]);
     const right = getBlock(b, [
       input.block[0],
       input.block[1],
-      input.block[2] + 1
+      input.block[2] + 1,
     ]);
     const block = getBlock(b, input.block)!;
 
@@ -306,7 +308,7 @@ const handleMove = (name: string | number, x: number, y: number) => {
   drawBoard(b);
 };
 
-canvas.addEventListener("touchstart", e => {
+canvas.addEventListener("touchstart", (e) => {
   const CELL_SIZE = getCellSize(canvas, b);
 
   const rect = canvas.getBoundingClientRect();
@@ -317,18 +319,18 @@ canvas.addEventListener("touchstart", e => {
     (clientY - rect.top) / CELL_SIZE
   );
 });
-canvas.addEventListener("mousedown", e => {
+canvas.addEventListener("mousedown", (e) => {
   const CELL_SIZE = getCellSize(canvas, b);
 
   handleDown("mouse", e.offsetX / CELL_SIZE, e.offsetY / CELL_SIZE);
 });
-window.addEventListener("touchend", e => {
+window.addEventListener("touchend", (e) => {
   handleUp(e.which);
 });
-window.addEventListener("mouseup", e => {
+window.addEventListener("mouseup", (e) => {
   handleUp("mouse");
 });
-window.addEventListener("touchmove", e => {
+window.addEventListener("touchmove", (e) => {
   const CELL_SIZE = getCellSize(canvas, b);
 
   const rect = canvas.getBoundingClientRect();
@@ -341,7 +343,7 @@ window.addEventListener("touchmove", e => {
 
   e.preventDefault();
 });
-window.addEventListener("mousemove", e => {
+window.addEventListener("mousemove", (e) => {
   const CELL_SIZE = getCellSize(canvas, b);
   handleMove(
     "mouse",
