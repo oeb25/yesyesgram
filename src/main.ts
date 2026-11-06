@@ -195,15 +195,6 @@ const boardSrc = `
 001110011100111
 001100011000110
 `.trim();
-// const boardSrc = `
-// 0010000
-// 0001000
-// 1001010
-// 0011100
-// 0011000
-// 0010000
-// 0001000
-//   `.trim();
 
 const parseBoard = (src: string): InitialBoard =>
   src.split("\n").map((x) => x.split("").map((x) => Math.random() < 0.6));
